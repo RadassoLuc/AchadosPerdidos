@@ -1,0 +1,10 @@
+{
+  "name": "achados-e-perdidos",
+  "version": "1.0.0",
+  "description": "Sistema simples de achados e perdidos (mini projeto)",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
