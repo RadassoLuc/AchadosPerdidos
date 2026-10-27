@@ -1,10 +1,13 @@
 {
-  "name": "achados-e-perdidos",
-  "version": "1.0.0",
-  "description": "Sistema simples de achados e perdidos (mini projeto)",
+  "name": "achados-e-perdidos-uepa",
+  "version": "2.0.0",
+  "description": "Achados e Perdidos da UEPA (campus Parauapebas)",
+  "type": "module",
   "main": "server.js",
-  "scripts": { "start": "node server.js" },
-  "dependencies": {
-    "express": "^4.19.2"
+  "engines": { "node": ">=22.13" },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node --test tests/*.test.js"
   }
 }
