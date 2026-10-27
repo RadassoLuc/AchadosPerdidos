@@ -1,160 +1,22 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Achados e Perdidos</title>
-<style>
-  /* Cores tiradas da logo da UEPA: azul #2e368e, dourado #f1c01f, vermelho #eb2226. */
-  /* Tema claro (padrão) */
-  :root {
-    --bg: #f8f7f2; --surface: #fff; --ink: #1d2150; --muted: #5b5f86; --line: #e2dfd0;
-    --header-bg: #fff; --header-ink: #2e368e; --logo-bg: transparent; --faixa: #f1c01f;
-    --accent: #2e368e; --on-accent: #fff; --perdido: #c8191d; --achado: #2f7d3a;
-  }
-  /* Tema escuro */
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --bg: #12143a; --surface: #1b1e4d; --ink: #eceefb; --muted: #a3a8d6; --line: #343a7a;
-      --header-bg: #2e368e; --header-ink: #fff; --logo-bg: #fff; --faixa: #f1c01f;
-      --accent: #f1c01f; --on-accent: #1b1e4d; --perdido: #ff7b7e; --achado: #7fd08a;
-    }
-  }
-  :root[data-theme="dark"] {
-    --bg: #12143a; --surface: #1b1e4d; --ink: #eceefb; --muted: #a3a8d6; --line: #343a7a;
-    --header-bg: #2e368e; --header-ink: #fff; --logo-bg: #fff; --faixa: #f1c01f;
-    --accent: #f1c01f; --on-accent: #1b1e4d; --perdido: #ff7b7e; --achado: #7fd08a;
-  }
-  * { box-sizing: border-box; }
-  body { margin: 0; font-family: system-ui, "Segoe UI", sans-serif; background: var(--bg); color: var(--ink); line-height: 1.5; }
-  header { background: var(--header-bg); color: var(--header-ink); border-bottom: 4px solid var(--faixa); }
-  header .wrap { max-width: 980px; margin: 0 auto; padding: 16px 20px; display: flex; align-items: center; gap: 18px; }
-  header img { height: 84px; width: 84px; object-fit: contain; background: var(--logo-bg); border-radius: 10px; padding: 4px; flex: none; }
-  header button { margin-left: auto; background: transparent; color: var(--header-ink); border: 1px solid currentColor; }
-  h1 { margin: 0; font-size: 1.9rem; letter-spacing: -0.02em; }
-  header p { margin: 4px 0 0; opacity: .8; }
-  main { max-width: 980px; margin: 0 auto; padding: 16px 20px 60px; display: grid; grid-template-columns: 320px 1fr; gap: 24px; align-items: start; }
-  @media (max-width: 800px) { main { grid-template-columns: 1fr; } }
-  form, .item { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
-  form h2, .lista h2 { margin: 0 0 12px; font-size: 1.05rem; }
-  label { display: block; font-size: .85rem; margin-top: 10px; color: var(--muted); }
-  input, select, textarea { width: 100%; padding: 8px 10px; margin-top: 4px; font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; }
-  textarea { resize: vertical; min-height: 60px; }
-  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  button { font: inherit; cursor: pointer; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); padding: 6px 12px; }
-  button.primario { width: 100%; margin-top: 16px; background: var(--accent); color: var(--on-accent); border-color: var(--accent); padding: 10px; font-weight: 600; }
-  .filtros { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
-  .filtros input { flex: 1 1 180px; margin: 0; }
-  .filtros select { width: auto; margin: 0; }
-  .item { margin-bottom: 12px; border-left: 5px solid var(--line); }
-  .item.perdido { border-left-color: var(--perdido); }
-  .item.achado { border-left-color: var(--achado); }
-  .item.devolvido { opacity: .6; }
-  .topo { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
-  .item h3 { margin: 0; font-size: 1.05rem; }
-  .tag { font-size: .8rem; font-weight: 600; }
-  .tag.perdido { color: var(--perdido); } .tag.achado { color: var(--achado); }
-  .meta { color: var(--muted); font-size: .88rem; margin: 4px 0; }
-  .acoes { margin-top: 10px; display: flex; gap: 8px; }
-  .vazio, .erro { color: var(--muted); padding: 24px; text-align: center; border: 1px dashed var(--line); border-radius: 10px; }
-  .erro { color: var(--perdido); }
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Achados e Perdidos UEPA</title>
+  <meta name="description" content="Achados e Perdidos da UEPA (campus Parauapebas): publique o que perdeu ou achou e retire no Protocolo.">
+  <meta name="theme-color" content="#2e368e">
+  <link rel="icon" href="/logo.webp" type="image/webp">
+  <script src="/js/theme.js"></script>
+  <link rel="stylesheet" href="/css/app.css">
 </head>
 <body>
-<header><div class="wrap">
-  <img src="logo.webp" alt="Brasão da Universidade do Estado do Pará">
-  <div>
-  <h1>Achados e Perdidos</h1>
-  <p>Perdeu algo ou encontrou algo? Cadastre aqui para o dono ou o achador te encontrar.</p>
-  </div>
-  <button id="tema" type="button"></button>
-</div></header>
-<main>
-  <form id="form">
-    <h2>Cadastrar item</h2>
-    <label>Tipo
-      <select name="tipo" required>
-        <option value="perdido">Perdi um item</option>
-        <option value="achado">Achei um item</option>
-      </select>
-    </label>
-    <label>O que é?<input name="titulo" required maxlength="80" placeholder="Ex.: Garrafa azul"></label>
-    <label>Descrição<textarea name="descricao" placeholder="Cor, marca, detalhes que identificam"></textarea></label>
-    <label>Local<input name="local" placeholder="Ex.: Biblioteca, bloco B"></label>
-    <label>Data<input name="data" type="date"></label>
-    <label>Contato<input name="contato" required placeholder="E-mail ou WhatsApp"></label>
-    <p id="msg" class="erro" hidden></p>
-    <button class="primario" type="submit">Cadastrar item</button>
-  </form>
-
-  <section class="lista">
-    <h2>Itens cadastrados</h2>
-    <div class="filtros">
-      <input id="q" type="search" placeholder="Buscar por nome, descrição ou local">
-      <select id="fTipo"><option value="">Todos os tipos</option><option value="perdido">Perdidos</option><option value="achado">Achados</option></select>
-      <select id="fStatus"><option value="aberto">Em aberto</option><option value="devolvido">Devolvidos</option><option value="">Todos</option></select>
-    </div>
-    <div id="lista"></div>
-  </section>
-</main>
-
-<script>
-const $ = (s) => document.querySelector(s);
-const esc = (t = '') => String(t).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const fmtData = (d) => d ? d.split('-').reverse().join('/') : 'data não informada';
-
-async function carregar() {
-  const params = new URLSearchParams({ q: $('#q').value, tipo: $('#fTipo').value, status: $('#fStatus').value });
-  for (const [k, v] of [...params]) if (!v) params.delete(k);
-  try {
-    const res = await fetch('/api/itens?' + params);
-    const itens = await res.json();
-    $('#lista').innerHTML = itens.length ? itens.map(card).join('') : '<p class="vazio">Nenhum item encontrado. Cadastre o primeiro no formulário.</p>';
-  } catch {
-    $('#lista').innerHTML = '<p class="erro">Não foi possível carregar os itens. Verifique se o servidor está rodando.</p>';
-  }
-}
-
-function card(i) {
-  return `<article class="item ${i.tipo} ${i.status}">
-    <div class="topo"><h3>${esc(i.titulo)}</h3><span class="tag ${i.tipo}">${i.tipo === 'perdido' ? 'Perdido' : 'Achado'}${i.status === 'devolvido' ? ' (devolvido)' : ''}</span></div>
-    <p class="meta">${esc(i.local) || 'local não informado'} • ${fmtData(i.data)}</p>
-    ${i.descricao ? `<p>${esc(i.descricao)}</p>` : ''}
-    <p class="meta">Contato: <strong>${esc(i.contato)}</strong></p>
-    <div class="acoes">
-      ${i.status === 'aberto' ? `<button onclick="devolver(${i.id})">Marcar como devolvido</button>` : ''}
-      <button onclick="excluir(${i.id})">Excluir</button>
-    </div>
-  </article>`;
-}
-
-$('#form').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const body = Object.fromEntries(new FormData(e.target));
-  const res = await fetch('/api/itens', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-  const msg = $('#msg');
-  if (!res.ok) { msg.textContent = (await res.json()).erro; msg.hidden = false; return; }
-  msg.hidden = true; e.target.reset(); carregar();
-});
-
-async function devolver(id) { await fetch(`/api/itens/${id}/devolvido`, { method: 'PATCH' }); carregar(); }
-async function excluir(id) { if (confirm('Excluir este item?')) { await fetch(`/api/itens/${id}`, { method: 'DELETE' }); carregar(); } }
-
-['#q', '#fTipo', '#fStatus'].forEach(s => $(s).addEventListener('input', carregar));
-carregar();
-
-// Alternar tema claro/escuro (começa pelo tema do sistema)
-const raiz = document.documentElement;
-const escuroAgora = () => raiz.dataset.theme ? raiz.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
-const rotulo = () => $('#tema').textContent = escuroAgora() ? 'Tema claro' : 'Tema escuro';
-try { const salvo = localStorage.getItem('tema'); if (salvo) raiz.dataset.theme = salvo; } catch {}
-$('#tema').addEventListener('click', () => {
-  const novo = escuroAgora() ? 'light' : 'dark';
-  raiz.dataset.theme = novo;
-  try { localStorage.setItem('tema', novo); } catch {}
-  rotulo();
-});
-rotulo();
-</script>
+  <a class="skip" href="#conteudo">Pular para o conteúdo</a>
+  <div id="cabecalho"></div>
+  <main id="conteudo" tabindex="-1"><div class="carregando">Carregando…</div></main>
+  <div id="rodape"></div>
+  <div id="avisos" class="avisos" role="status" aria-live="polite"></div>
+  <noscript><p class="aviso-js">Ative o JavaScript para usar o Achados e Perdidos UEPA.</p></noscript>
+  <script type="module" src="/js/app.js"></script>
 </body>
 </html>
