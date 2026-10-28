@@ -11,6 +11,8 @@ const int = (v, d) => (Number.isInteger(Number(v)) && v !== undefined && v !== '
 
 export function loadConfig(overrides = {}) {
   const e = { ...process.env, ...overrides };
+  if (e.NODE_ENV === 'production' && e.GOOGLE_TOKEN_URL && !e.GOOGLE_TOKEN_URL.startsWith('https://'))
+    throw new Error('GOOGLE_TOKEN_URL deve usar https em produção.');
   const dataDir = path.resolve(ROOT, e.DATA_DIR || 'data');
   return {
     root: ROOT,
@@ -39,6 +41,20 @@ export function loadConfig(overrides = {}) {
         }
       : null,
     mailFrom: e.MAIL_FROM || 'Achados e Perdidos UEPA <no-reply@localhost>',
+    vlibras: e.VLIBRAS !== 'false',
+    host: e.HOST || undefined,
+    senhaAtiva: e.PASSWORD_AUTH !== 'false',
+    vlibrasCspEstrita: e.VLIBRAS_CSP === 'estrita',
+    cspExtraScript: (e.CSP_EXTRA_SCRIPT_SRC || '').replace(/[;\r\n]/g, ' ').trim(),
+    google: e.GOOGLE_CLIENT_ID && e.GOOGLE_CLIENT_SECRET
+      ? {
+          clientId: e.GOOGLE_CLIENT_ID,
+          clientSecret: e.GOOGLE_CLIENT_SECRET,
+          redirectUri: e.GOOGLE_REDIRECT_URI || `${(e.APP_URL || 'http://localhost:3000').replace(/\/$/, '')}/api/auth/google/callback`,
+          authUrl: e.GOOGLE_AUTH_URL || 'https://accounts.google.com/o/oauth2/v2/auth',
+          tokenUrl: e.GOOGLE_TOKEN_URL || 'https://oauth2.googleapis.com/token',
+        }
+      : null,
     // limites de taxa (podem ser relaxados nos testes)
     rateLimit: e.RATE_LIMIT_OFF === 'true' ? false : true,
   };
