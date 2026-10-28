@@ -1,21 +1,24 @@
-import { carregarSessao, sessao, post } from './api.js';
-import { html, icone, mostrar, raw, toast } from './ui.js';
+import { carregarSessao, meta, sessao, post } from './api.js';
+import { alternarPainel, aplicar } from './a11y.js';
+import { carregarVLibras } from './vlibras.js';
+import { avatar, html, icone, mostrar, raw, toast } from './ui.js';
 
 const rotas = [
   { re: /^\/$/, mod: () => import('./pages/home.js') },
-  { re: /^\/itens$/, mod: () => import('./pages/itens.js'), exp: 'lista', login: true },
-  { re: /^\/itens\/(\d+)$/, mod: () => import('./pages/itens.js'), exp: 'detalhe', login: true },
-  { re: /^\/novo$/, mod: () => import('./pages/itens.js'), exp: 'novo', login: true },
-  { re: /^\/meus$/, mod: () => import('./pages/painel.js'), exp: 'meus', login: true },
-  { re: /^\/conta$/, mod: () => import('./pages/painel.js'), exp: 'conta', login: true },
-  { re: /^\/protocolo$/, mod: () => import('./pages/painel.js'), exp: 'protocolo', login: true, papeis: ['protocolo', 'admin'] },
-  { re: /^\/admin$/, mod: () => import('./pages/painel.js'), exp: 'admin', login: true, papeis: ['admin'] },
-  { re: /^\/entrar$/, mod: () => import('./pages/auth.js'), exp: 'entrar' },
-  { re: /^\/cadastro$/, mod: () => import('./pages/auth.js'), exp: 'cadastro' },
-  { re: /^\/verificar$/, mod: () => import('./pages/auth.js'), exp: 'verificar' },
-  { re: /^\/esqueci$/, mod: () => import('./pages/auth.js'), exp: 'esqueci' },
-  { re: /^\/redefinir$/, mod: () => import('./pages/auth.js'), exp: 'redefinir' },
-  { re: /^\/privacidade$/, mod: () => import('./pages/auth.js'), exp: 'privacidade' },
+  { re: /^\/itens$/, mod: () => import('./pages/itens.js'), exp: 'lista', titulo: 'Itens', login: true },
+  { re: /^\/itens\/(\d+)$/, mod: () => import('./pages/itens.js'), exp: 'detalhe', titulo: 'Item', login: true },
+  { re: /^\/novo$/, mod: () => import('./pages/itens.js'), exp: 'novo', titulo: 'Postar item', login: true },
+  { re: /^\/meus$/, mod: () => import('./pages/painel.js'), exp: 'meus', titulo: 'Meus itens', login: true },
+  { re: /^\/conta$/, mod: () => import('./pages/painel.js'), exp: 'conta', titulo: 'Minha conta', login: true },
+  { re: /^\/protocolo$/, mod: () => import('./pages/painel.js'), exp: 'protocolo', titulo: 'Painel do Protocolo', login: true, papeis: ['protocolo', 'admin'] },
+  { re: /^\/admin$/, mod: () => import('./pages/painel.js'), exp: 'admin', titulo: 'Administração', login: true, papeis: ['admin'] },
+  { re: /^\/entrar$/, mod: () => import('./pages/auth.js'), exp: 'entrar', titulo: 'Entrar' },
+  { re: /^\/cadastro$/, mod: () => import('./pages/auth.js'), exp: 'cadastro', titulo: 'Criar conta' },
+  { re: /^\/verificar$/, mod: () => import('./pages/auth.js'), exp: 'verificar', titulo: 'Confirmar e-mail' },
+  { re: /^\/esqueci$/, mod: () => import('./pages/auth.js'), exp: 'esqueci', titulo: 'Esqueci minha senha' },
+  { re: /^\/redefinir$/, mod: () => import('./pages/auth.js'), exp: 'redefinir', titulo: 'Nova senha' },
+  { re: /^\/acessibilidade$/, mod: () => import('./pages/auth.js'), exp: 'acessibilidade', titulo: 'Acessibilidade' },
+  { re: /^\/privacidade$/, mod: () => import('./pages/auth.js'), exp: 'privacidade', titulo: 'Privacidade e termos' },
 ];
 
 const main = document.getElementById('conteudo');
@@ -34,13 +37,15 @@ function desenharTopo() {
       ${u ? html`<a href="#/meus" ${raw(cur('/meus'))}>Meus itens</a>` : ''}
       ${equipe ? html`<a href="#/protocolo" ${raw(cur('/protocolo'))}>Protocolo</a>` : ''}
       ${u?.papel === 'admin' ? html`<a href="#/admin" ${raw(cur('/admin'))}>Admin</a>` : ''}
+      <button class="link" id="a11y-btn" type="button" aria-haspopup="dialog" aria-expanded="false">${icone('shield')} Acessibilidade</button>
       <button class="link" id="tema" type="button" aria-label="Alternar tema claro/escuro">${icone('moon')}</button>
-      ${u ? html`<a href="#/conta" ${raw(cur('/conta'))}>${icone('user')} ${u.nome.split(' ')[0]}</a><button class="link" id="sair" type="button">Sair</button>`
+      ${u ? html`<a href="#/conta" ${raw(cur('/conta'))}>${avatar(u, 'xs')} ${u.nome.split(' ')[0]}</a><button class="link" id="sair" type="button">Sair</button>`
           : html`<a href="#/entrar">Entrar</a>`}
       <a class="btn btn-ouro btn-sm" href="#/novo">${icone('plus')} Postar item</a>
     </nav></div></header>`);
   document.getElementById('menu-btn').onclick = () => { navAberto = !navAberto; desenharTopo(); };
   document.getElementById('nav').addEventListener('click', (e) => { if (e.target.closest('a')) { navAberto = false; document.getElementById('nav').classList.remove('aberto'); } });
+  document.getElementById('a11y-btn').onclick = (e) => alternarPainel(e.currentTarget);
   document.getElementById('tema').onclick = () => {
     const escuro = document.documentElement.dataset.tema === 'dark' || (!document.documentElement.dataset.tema && matchMedia('(prefers-color-scheme: dark)').matches);
     const novo = escuro ? 'light' : 'dark';
@@ -53,9 +58,9 @@ function desenharTopo() {
 
 function desenharRodape() {
   mostrar(document.getElementById('rodape'), html`<footer class="rodape"><div class="wrap">
-    <div><h4>Achados e Perdidos UEPA</h4><p>Projeto da comunidade acadêmica do campus Parauapebas para devolver o que foi esquecido pelos corredores. Os itens achados ficam guardados no Protocolo.</p></div>
-    <div><h4>Navegue</h4><a href="#/itens">Ver itens</a><a href="#/novo">Postar item</a><a href="#/meus">Meus itens</a></div>
-    <div><h4>Ajuda</h4><a href="#/privacidade">Privacidade e termos</a><a href="#/esqueci">Esqueci minha senha</a></div>
+    <div><h2 class="rt">Achados e Perdidos UEPA</h2><p>Projeto da comunidade acadêmica do campus Parauapebas para devolver o que foi esquecido pelos corredores. Os itens achados ficam guardados no Protocolo.</p></div>
+    <div><h2 class="rt">Navegue</h2><a href="#/itens">Ver itens</a><a href="#/novo">Postar item</a><a href="#/meus">Meus itens</a></div>
+    <div><h2 class="rt">Ajuda</h2><a href="#/privacidade">Privacidade e termos</a><a href="#/acessibilidade">Acessibilidade</a><a href="#/esqueci">Esqueci minha senha</a></div>
     <div class="fim">Uso restrito a quem tem e-mail institucional da UEPA. Não é um site oficial da Universidade do Estado do Pará.</div>
   </div></footer>`);
 }
@@ -67,6 +72,7 @@ async function navegar() {
   const query = new URLSearchParams(qs);
   const rota = rotas.find((r) => r.re.test(caminho));
   desenharTopo();
+  document.title = `${rota?.titulo ? `${rota.titulo} · ` : ''}Achados e Perdidos UEPA`;
   if (!rota) { mostrar(main, html`<div class="vazio"><h1>Página não encontrada</h1><a class="btn btn-azul" href="#/">Voltar ao início</a></div>`); return; }
   if (rota.login && !sessao.usuario) { location.replace(`#/entrar?volta=${encodeURIComponent(location.hash.slice(1))}`); return; }
   if (rota.papeis && !rota.papeis.includes(sessao.usuario?.papel)) { mostrar(main, html`<div class="vazio"><h1>Acesso restrito</h1><p>Esta área é só para a equipe do Protocolo.</p></div>`); return; }
@@ -81,11 +87,17 @@ async function navegar() {
     console.error(e);
     mostrar(main, html`<div class="vazio"><h1>Ops!</h1><p>${e.message || 'Algo deu errado.'}</p><a class="btn btn-azul" href="#/">Voltar ao início</a></div>`);
   }
-  if (eu === numero) { window.scrollTo(0, 0); main.focus({ preventScroll: true }); }
+  if (eu === numero) {
+    window.scrollTo(0, 0); main.focus({ preventScroll: true });
+    const h1 = main.querySelector('h1');
+    document.getElementById('anuncio').textContent = `${h1?.textContent || rota.titulo || 'Página'} — página carregada`;
+  }
 }
 
 window.addEventListener('hashchange', navegar);
 window.addEventListener('sessao-expirou', () => { toast('Sua sessão expirou. Entre novamente.', 'erro'); location.hash = '#/entrar'; });
 desenharRodape();
+aplicar();
+meta().then((m) => { if (m.vlibras) carregarVLibras(); }).catch(() => {});
 try { await carregarSessao(); } catch { /* visitante */ }
 navegar();

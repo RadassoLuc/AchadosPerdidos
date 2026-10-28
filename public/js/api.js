@@ -22,6 +22,7 @@ export async function api(metodo, url, corpo, opts = {}) {
 export const get = (u) => api('GET', u);
 export const post = (u, b = {}) => api('POST', u, b);
 export const patch = (u, b = {}) => api('PATCH', u, b);
+export const apagar = (u) => api('DELETE', u);
 
 export async function carregarSessao() {
   const r = await get('/api/auth/eu');
@@ -50,4 +51,21 @@ export async function prepararFoto(arquivo) {
   if (!blob) throw new ApiError(0, { erro: 'Falha ao preparar a foto.' });
   return blob;
 }
+/** Recorta o centro da foto em quadrado de 256 px (JPEG). Também remove EXIF/GPS. */
+export async function prepararAvatar(arquivo) {
+  if (!arquivo.type.startsWith('image/')) throw new ApiError(0, { erro: 'Escolha um arquivo de imagem.' });
+  const bmp = await createImageBitmap(arquivo, { imageOrientation: 'from-image' }).catch(() => null);
+  if (!bmp) throw new ApiError(0, { erro: 'Não consegui ler essa imagem. Tente outra foto (JPEG ou PNG).' });
+  const lado = Math.min(bmp.width, bmp.height);
+  const c = document.createElement('canvas');
+  c.width = c.height = 256;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, 256, 256);
+  ctx.drawImage(bmp, (bmp.width - lado) / 2, (bmp.height - lado) / 2, lado, lado, 0, 0, 256, 256);
+  bmp.close?.();
+  const blob = await new Promise((r) => c.toBlob(r, 'image/jpeg', 0.85));
+  if (!blob) throw new ApiError(0, { erro: 'Falha ao preparar a foto.' });
+  return blob;
+}
+export const enviarAvatar = (blob) => api('POST', '/api/eu/avatar', undefined, { raw: blob, tipo: 'image/jpeg' });
 export const enviarFoto = (blob) => api('POST', '/api/uploads', undefined, { raw: blob, tipo: 'image/jpeg' });

@@ -39,6 +39,16 @@ const P = {
 export const icone = (nome, cls = '') =>
   raw(`<svg class="icone ${cls}" viewBox="0 0 24 24" aria-hidden="true"><path d="${P[nome] || P.box}"/></svg>`);
 
+/** Foto de perfil ou, se não houver, um círculo com as iniciais. `rotulo`: lê "Foto de X" para leitor de tela (use só quando o nome não aparece ao lado). */
+export function avatar(u, tam = 'md', rotulo = false) {
+  const nome = u?.nome || '?';
+  if (u?.avatar) return html`<img class="avatar av-${tam}" src="${u.avatar}" alt="${rotulo ? `Foto de ${nome}` : ''}" loading="lazy">`;
+  const p = nome.split(' ').filter(Boolean);
+  const ini = ((p[0]?.[0] || '?') + (p.length > 1 ? p[p.length - 1][0] : '')).toUpperCase();
+  let h = 0; for (const c of nome) h = (h * 31 + c.charCodeAt(0)) % 6;
+  return html`<span class="avatar av-${tam} av-ini av-c${h}" ${raw(rotulo ? `role="img" aria-label="${esc(nome)}"` : 'aria-hidden="true"')}>${ini}</span>`;
+}
+
 export function toast(msg, tipo = '') {
   const box = document.getElementById('avisos');
   const el = document.createElement('div');
@@ -66,7 +76,7 @@ export function cartaoItem(i) {
       ${seloDias(i)}
     </div>
     <div class="corpo">
-      <h3>${i.titulo}</h3>
+      <h2 class="h3">${i.titulo}</h2>
       <div class="meta">${icone('pin')} ${i.local.nome}</div>
       <div class="meta"><span class="selo selo-status">${i.status_rotulo}</span> <span class="mono">${i.codigo}</span></div>
     </div>
@@ -75,13 +85,18 @@ export function cartaoItem(i) {
 
 export function erroCampos(form, campos = {}) {
   form.querySelectorAll('.erro-campo').forEach((e) => e.remove());
+  form.querySelectorAll('[aria-invalid]').forEach((i) => { i.removeAttribute('aria-invalid'); i.removeAttribute('aria-describedby'); });
+  let primeiro = null;
   for (const [nome, msg] of Object.entries(campos)) {
-    const alvo = form.querySelector(`[name="${nome}"]`)?.closest('.campo') || form;
+    const input = form.querySelector(`[name="${nome}"]`);
+    const alvo = input?.closest('.campo') || form;
     const p = document.createElement('div');
-    p.className = 'erro-campo'; p.textContent = msg; p.setAttribute('role', 'alert');
+    p.className = 'erro-campo'; p.id = `erro-${nome}`; p.textContent = msg; p.setAttribute('role', 'alert');
     alvo.append(p);
+    if (input) { input.setAttribute('aria-invalid', 'true'); input.setAttribute('aria-describedby', p.id); primeiro ??= input; }
   }
-  form.querySelector('.erro-campo')?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  const alvoFoco = primeiro || form.querySelector('.erro-campo');
+  if (alvoFoco) { alvoFoco.scrollIntoView({ block: 'center', behavior: 'smooth' }); if (primeiro) primeiro.focus({ preventScroll: true }); }
 }
 
 export const formDados = (form) => Object.fromEntries([...new FormData(form)].map(([k, v]) => [k, typeof v === 'string' ? v.trim() : v]));
