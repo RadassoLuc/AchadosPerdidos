@@ -15,9 +15,10 @@ export default function protocoloRoutes(r, d) {
     const aguardando = db.prepare(`${base} WHERE i.status='aguardando_entrega' ORDER BY i.ocorrido_em ASC LIMIT 100`).all().map(dar);
     const guardados = db.prepare(`${base} WHERE i.status IN ('no_protocolo','em_reclamacao') ORDER BY i.ocorrido_em ASC LIMIT 200`).all()
       .map(dar).map((i) => ({ ...i, elegivel_destino: i.status === 'no_protocolo' && i.dias >= config.retentionDays }));
-    const reivindicacoes = db.prepare(`SELECT rv.id, rv.prova, rv.status, rv.criado_em, i.id item_id, i.codigo, i.titulo, u.nome, u.matricula, u.email
+    const reivindicacoes = db.prepare(`SELECT rv.id, rv.prova, rv.status, rv.criado_em, i.id item_id, i.codigo, i.titulo, u.nome, u.matricula, u.email, u.avatar
       FROM reivindicacoes rv JOIN itens i ON i.id=rv.item_id JOIN usuarios u ON u.id=rv.usuario_id
       WHERE rv.status IN ('pendente','aprovada') ORDER BY rv.id ASC LIMIT 100`).all();
+    for (const rv of reivindicacoes) { rv.avatar = rv.avatar ? `/uploads/${rv.avatar}` : null; }
     return { aguardando, guardados, reivindicacoes, retencao_dias: config.retentionDays };
   }, EQUIPE);
 

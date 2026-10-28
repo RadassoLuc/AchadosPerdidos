@@ -28,7 +28,8 @@ export default function uploadRoutes(r, d) {
   // Servir fotos: exige login; fotos de itens removidos só para dono/equipe.
   r.add('GET', '/uploads/:arquivo', async (ctx) => {
     if (!/^[0-9a-f]{32}\.jpg$/.test(ctx.params.arquivo)) throw new HttpError(404, 'Não encontrado.');
-    const f = db.prepare(`SELECT f.autor_id, i.status FROM item_fotos f LEFT JOIN itens i ON i.id=f.item_id WHERE f.arquivo=?`).get(ctx.params.arquivo);
+    const dono = db.prepare('SELECT 1 FROM usuarios WHERE avatar=?').get(ctx.params.arquivo);
+    const f = dono ? { autor_id: 0, status: 'aberto' } : db.prepare(`SELECT f.autor_id, i.status FROM item_fotos f LEFT JOIN itens i ON i.id=f.item_id WHERE f.arquivo=?`).get(ctx.params.arquivo);
     if (!f) throw new HttpError(404, 'Não encontrado.');
     const privada = f.status === null || f.status === 'removido';
     if (privada && f.autor_id !== ctx.usuario.id && !ehEquipe(ctx.usuario)) throw new HttpError(404, 'Não encontrado.');

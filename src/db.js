@@ -185,6 +185,17 @@ const MIGRACOES = [
       for (const n of LOCAIS) l.run(n);
     },
   },
+  {
+    // v4: foto de perfil + permite apagar o histórico de um item que foi excluído de vez pelo admin.
+    versao: 2,
+    aplicar(db) {
+      db.exec('ALTER TABLE usuarios ADD COLUMN avatar TEXT');
+      db.exec('DROP TRIGGER hist_imutavel_d');
+      db.exec(`CREATE TRIGGER hist_imutavel_d BEFORE DELETE ON item_historico
+        WHEN EXISTS (SELECT 1 FROM itens WHERE id = OLD.item_id)
+        BEGIN SELECT RAISE(ABORT, 'histórico é imutável'); END`);
+    },
+  },
 ];
 
 export function abrirBanco(caminho) {
