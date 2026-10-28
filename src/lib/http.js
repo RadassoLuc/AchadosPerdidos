@@ -28,9 +28,32 @@ export function ipDe(req, trustProxy) {
   return req.socket.remoteAddress || 'desconhecido';
 }
 
-export function cabecalhosSeguranca(res, production) {
-  res.setHeader('Content-Security-Policy',
-    "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'");
+/**
+ * Monta a Content-Security-Policy. O VLibras (tradutor de Libras do governo) carrega scripts, estilos, o avatar 3D
+ * (Unity/WebGL) e os dicionários de sinais de vlibras.gov.br e subdomínios, e usa estilos inline e eval.
+ * Por isso, com VLibras ligado liberamos só esses domínios + 'unsafe-eval' e estilos inline.
+ * O restante do site não usa nenhum dos dois (sem scripts/estilos inline); VLIBRAS_CSP=estrita mantém tudo restrito.
+ */
+export function montarCsp({ vlibras = false, vlibrasCspEstrita = false, cspExtraScript = '' } = {}) {
+  const v = vlibras ? ' https://vlibras.gov.br https://*.vlibras.gov.br' : '';
+  const compat = vlibras && !vlibrasCspEstrita;
+  const partes = [
+    "default-src 'self'",
+    `script-src 'self'${v}${vlibras ? " 'wasm-unsafe-eval'" : ''}${compat ? " 'unsafe-eval'" : ''}${cspExtraScript ? ` ${cspExtraScript}` : ''}`,
+    `style-src 'self'${v}${compat ? " 'unsafe-inline'" : ''}`,
+    `img-src 'self' data: blob:${v}`,
+    `font-src 'self' data:${v}`,
+    `connect-src 'self'${v}${vlibras ? ' blob: data:' : ''}`,
+    `media-src 'self' blob:${v}`,
+    `frame-src ${vlibras ? v.trim() : "'none'"}`,
+    "worker-src 'self' blob:",
+    "object-src 'none'", "base-uri 'none'", "form-action 'self'", "frame-ancestors 'none'",
+  ];
+  return partes.join('; ');
+}
+
+export function cabecalhosSeguranca(res, production, csp = montarCsp()) {
+  res.setHeader('Content-Security-Policy', csp);
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('Referrer-Policy', 'same-origin');
