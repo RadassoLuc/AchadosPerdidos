@@ -1,0 +1,19 @@
+[Unit]
+Description=Achados e Perdidos UEPA
+After=network.target
+
+[Service]
+User=achados
+WorkingDirectory=/opt/achados
+EnvironmentFile=/opt/achados/.env
+ExecStart=/usr/bin/node server.js
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/opt/achados/data
+PrivateTmp=true
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target
