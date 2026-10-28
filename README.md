@@ -17,6 +17,14 @@ Sem `SMTP_HOST` no `.env`, os e-mails (confirmação de conta, recuperação de 
 
 O primeiro administrador é quem se cadastra com um e-mail listado em `ADMIN_EMAILS`. Depois, o admin promove o pessoal do Protocolo em **Admin → Usuários** (papel `protocolo`).
 
+## Novidades da v4
+
+Foto de perfil, admin apaga postagens e gerencia categorias/locais, mais opções de acessibilidade (fontes, ouvir página, foco, cursor) e rodapé sempre no fim da página. Detalhes em `docs/DECISOES.md`.
+
+## Colocar no ar
+
+Veja [docs/DEPLOY.md](docs/DEPLOY.md) (túnel do seu PC, VPS com HTTPS, Docker, login com Google, VLibras).
+
 ## Papéis
 
 | Papel | Pode |
