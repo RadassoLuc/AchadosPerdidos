@@ -30,7 +30,7 @@ const codigoDe = (id, criado) => `AP-${new Date(criado).getUTCFullYear()}-${Stri
 export default function itemRoutes(r, d) {
   const { db, config, mailer, limitador } = d;
 
-  const SELECT = `SELECT i.*, c.nome categoria_nome, c.icone categoria_icone, l.nome local_nome, u.nome autor_nome,
+  const SELECT = `SELECT i.*, c.nome categoria_nome, c.icone categoria_icone, l.nome local_nome, u.nome autor_nome, u.avatar autor_avatar,
     (SELECT arquivo FROM item_fotos f WHERE f.item_id = i.id ORDER BY f.ordem, f.id LIMIT 1) capa
     FROM itens i JOIN categorias c ON c.id = i.categoria_id JOIN locais l ON l.id = i.local_id JOIN usuarios u ON u.id = i.autor_id`;
 
@@ -42,7 +42,7 @@ export default function itemRoutes(r, d) {
       categoria: { id: i.categoria_id, nome: i.categoria_nome, icone: i.categoria_icone },
       local: { id: i.local_id, nome: i.local_nome }, local_detalhe: i.local_detalhe,
       ocorrido_em: i.ocorrido_em, dias, faixa: FINAIS.has(i.status) ? 'final' : faixaDias(dias),
-      capa: i.capa ? `/uploads/${i.capa}` : null, autor: nomeCurto(i.autor_nome),
+      capa: i.capa ? `/uploads/${i.capa}` : null, autor: nomeCurto(i.autor_nome), autor_avatar: i.autor_avatar ? `/uploads/${i.autor_avatar}` : null,
       meu: !!viewer && viewer.id === i.autor_id, criado_em: i.criado_em,
       elegivel_destino: i.tipo === 'achado' && ['no_protocolo'].includes(i.status) && dias >= config.retentionDays,
     };
@@ -86,6 +86,9 @@ export default function itemRoutes(r, d) {
     categorias: db.prepare('SELECT id, nome, icone FROM categorias WHERE ativo=1 ORDER BY id').all(),
     locais: db.prepare('SELECT id, nome FROM locais WHERE ativo=1 ORDER BY nome').all(),
     retencao_dias: config.retentionDays,
+    google: !!config.google,
+    senha: config.senhaAtiva,
+    vlibras: config.vlibras,
   }));
 
   // ---------- Lista ----------
@@ -129,14 +132,17 @@ export default function itemRoutes(r, d) {
     out.minha_reivindicacao = db.prepare("SELECT id, status, prova, nota_decisao, criado_em FROM reivindicacoes WHERE item_id=? AND usuario_id=? ORDER BY id DESC LIMIT 1").get(i.id, eu.id) ?? null;
     out.ja_denunciei = !!db.prepare('SELECT 1 FROM denuncias WHERE item_id=? AND usuario_id=?').get(i.id, eu.id);
     if (i.autor_id === eu.id || equipe) {
-      out.avisos = db.prepare('SELECT a.id, a.mensagem, a.criado_em, u.nome, u.email FROM avisos a JOIN usuarios u ON u.id=a.autor_id WHERE a.item_id=? ORDER BY a.id DESC').all(i.id);
+      out.avisos = db.prepare('SELECT a.id, a.mensagem, a.criado_em, u.nome, u.email, u.avatar FROM avisos a JOIN usuarios u ON u.id=a.autor_id WHERE a.item_id=? ORDER BY a.id DESC').all(i.id);
       out.total_reivindicacoes = db.prepare("SELECT count(*) n FROM reivindicacoes WHERE item_id=? AND status IN ('pendente','aprovada')").get(i.id).n;
     }
     if (equipe) {
-      out.reivindicacoes = db.prepare(`SELECT rv.id, rv.status, rv.prova, rv.nota_decisao, rv.criado_em, u.nome, u.matricula, u.email
+      out.reivindicacoes = db.prepare(`SELECT rv.id, rv.status, rv.prova, rv.nota_decisao, rv.criado_em, u.nome, u.matricula, u.email, u.avatar
         FROM reivindicacoes rv JOIN usuarios u ON u.id=rv.usuario_id WHERE rv.item_id=? ORDER BY rv.id DESC`).all(i.id);
       out.entrega = db.prepare('SELECT recebedor_nome, recebedor_documento, nota, criado_em FROM entregas WHERE item_id=?').get(i.id) ?? null;
     }
+    const url = (x) => ({ ...x, avatar: x.avatar ? `/uploads/${x.avatar}` : null });
+    if (out.avisos) out.avisos = out.avisos.map(url);
+    if (out.reivindicacoes) out.reivindicacoes = out.reivindicacoes.map(url);
     return out;
   }, { auth: true });
 

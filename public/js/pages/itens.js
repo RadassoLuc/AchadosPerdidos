@@ -1,5 +1,5 @@
 import { ApiError, get, meta, patch, post, prepararFoto, enviarFoto, sessao } from '../api.js';
-import { cartaoItem, dataHora, erroCampos, formDados, html, icone, mostrar, ocupado, seloDias, toast } from '../ui.js';
+import { avatar, cartaoItem, dataHora, erroCampos, formDados, html, icone, mostrar, ocupado, seloDias, toast } from '../ui.js';
 
 const opcoes = (lista, sel) => lista.map((o) => html`<option value="${o.id}" ${sel == o.id ? 'selected' : ''}>${o.nome}</option>`);
 
@@ -69,7 +69,7 @@ export async function detalhe({ el, params }) {
       <div class="galeria">
         <div class="principal" id="principal">${i.fotos.length ? html`<img src="${i.fotos[0]}" alt="Foto de ${i.titulo}">` : icone(i.categoria.icone, 'grande')}</div>
         ${i.fotos.length > 1 ? html`<div class="mini">${i.fotos.map((f, n) => html`<button type="button" data-foto="${f}" aria-current="${n === 0}" aria-label="Foto ${n + 1}"><img src="${f}" alt=""></button>`)}</div>` : ''}
-        <div class="card pad mt"><h3>Linha do tempo</h3>
+        <div class="card pad mt"><h2 class="h3">Linha do tempo</h2>
           <ul class="linha-tempo">${i.historico.map((h) => html`<li><b>${h.rotulo}</b> <span class="dica">${dataHora(h.em)} · ${h.por}</span>${h.nota ? html`<div class="dica">${h.nota}</div>` : ''}</li>`)}</ul></div>
       </div>
       <div>
@@ -79,7 +79,7 @@ export async function detalhe({ el, params }) {
             <dt>${i.tipo === 'achado' ? 'Achado em' : 'Perdido em'}</dt><dd>${dataHora(i.ocorrido_em)}</dd>
             <dt>Local</dt><dd>${i.local.nome}${i.local_detalhe ? ` — ${i.local_detalhe}` : ''}</dd>
             <dt>Categoria</dt><dd>${i.categoria.nome}</dd>
-            <dt>Publicado por</dt><dd>${i.autor}</dd>
+            <dt>Publicado por</dt><dd class="autor">${avatar({ nome: i.autor, avatar: i.autor_avatar }, 'sm')} ${i.autor}</dd>
             ${i.local_guarda ? html`<dt>Guardado em</dt><dd>Protocolo — ${i.local_guarda}</dd>` : ''}
           </dl>
           ${i.tipo === 'achado' && ['aguardando_entrega'].includes(i.status) ? html`<div class="alerta alerta-info">Este item ainda <b>não foi confirmado no Protocolo</b>. Se ele é seu, vá até lá para conferir.</div>` : ''}
@@ -96,8 +96,8 @@ export async function detalhe({ el, params }) {
           </div>
           <div id="painel-acao"></div>
         </div>
-        ${meu && i.avisos?.length ? html`<div class="card pad mt"><h3>Avisos recebidos</h3>${i.avisos.map((a) => html`<div class="painel-acao"><b>${a.nome}</b> <span class="dica">${dataHora(a.criado_em)}</span><p>${a.mensagem}</p><a href="mailto:${a.email}">${a.email}</a></div>`)}</div>` : ''}
-        ${equipe ? html`<div class="card pad mt"><h3>${icone('shield')} Área do Protocolo</h3><div id="equipe"></div></div>` : ''}
+        ${meu && i.avisos?.length ? html`<div class="card pad mt"><h2 class="h3">Avisos recebidos</h2>${i.avisos.map((a) => html`<div class="painel-acao"><div class="pessoa">${avatar(a, 'md')}<div><b>${a.nome}</b> <span class="dica">${dataHora(a.criado_em)}</span></div></div><p>${a.mensagem}</p><a href="mailto:${a.email}">${a.email}</a></div>`)}</div>` : ''}
+        ${equipe ? html`<div class="card pad mt"><h2 class="h3">${icone('shield')} Área do Protocolo</h2><div id="equipe"></div></div>` : ''}
       </div>
     </div></div>`);
 
@@ -105,7 +105,7 @@ export async function detalhe({ el, params }) {
   const recarregar = () => detalhe({ el, params });
   const falhar = (e, form) => { if (e instanceof ApiError) { if (e.campos && form) erroCampos(form, e.campos); toast(e.message, 'erro'); } else throw e; };
   const formulario = (titulo, campos, rotulo, fn, cls = 'btn-azul') => {
-    mostrar(painel, html`<form class="painel-acao" novalidate><h3>${titulo}</h3>${campos}<button class="btn ${cls}" type="submit">${rotulo}</button></form>`);
+    mostrar(painel, html`<form class="painel-acao" novalidate><h2 class="h3">${titulo}</h2>${campos}<button class="btn ${cls}" type="submit">${rotulo}</button></form>`);
     const form = painel.querySelector('form');
     form.addEventListener('submit', ocupado(form.querySelector('button'), async (e) => {
       e.preventDefault(); erroCampos(form);
@@ -144,7 +144,7 @@ export async function detalhe({ el, params }) {
 function equipeUI(box, i, id, pendentes, recarregar, falhar, eu) {
   const secoes = [];
   if (i.tipo === 'achado' && i.status === 'aguardando_entrega') secoes.push(html`<form data-f="recebido" class="painel-acao"><b>Confirmar recebimento</b><div class="campo"><label for="lg">Onde ficou guardado?</label><input id="lg" name="local_guarda" maxlength="60" placeholder="Ex.: Armário 2, prateleira de cima"></div><button class="btn btn-azul btn-sm" type="submit">Item recebido</button></form>`);
-  if (i.reivindicacoes?.length) secoes.push(html`<div class="painel-acao"><b>Reivindicações</b>${i.reivindicacoes.map((r) => html`<div class="mini-item"><div><b>${r.nome}</b> <span class="dica">${r.matricula ? `mat. ${r.matricula} · ` : ''}${r.email}</span><p>“${r.prova}”</p><span class="selo selo-status">${r.status}</span>
+  if (i.reivindicacoes?.length) secoes.push(html`<div class="painel-acao"><b>Reivindicações</b>${i.reivindicacoes.map((r) => html`<div class="mini-item">${avatar(r, 'lg', true)}<div><b>${r.nome}</b> <span class="dica">${r.matricula ? `mat. ${r.matricula} · ` : ''}${r.email}</span><p>“${r.prova}”</p><span class="selo selo-status">${r.status}</span>
       ${r.status === 'pendente' ? html`<div class="acoes"><button class="btn btn-azul btn-sm" data-dec="aprovar" data-rv="${r.id}">Aprovar</button><button class="btn btn-borda btn-sm" data-dec="rejeitar" data-rv="${r.id}">Rejeitar</button></div>` : ''}</div></div>`)}</div>`);
   if (i.tipo === 'achado' && ['aguardando_entrega', 'no_protocolo', 'em_reclamacao'].includes(i.status))
     secoes.push(html`<form data-f="entregar" class="painel-acao"><b>Registrar devolução</b>
@@ -159,18 +159,22 @@ function equipeUI(box, i, id, pendentes, recarregar, falhar, eu) {
       <div class="campo"><label for="dn">Justificativa</label><input id="dn" name="nota" maxlength="300"></div><button class="btn btn-borda btn-sm" type="submit">Registrar destinação</button></form>`);
   if (eu.papel === 'admin' && ['aguardando_entrega', 'no_protocolo', 'em_reclamacao', 'aberto'].includes(i.status))
     secoes.push(html`<form data-f="remover" class="painel-acao"><b>Remover (moderação)</b><div class="campo"><label for="rm">Motivo</label><input id="rm" name="motivo" maxlength="300"></div><button class="btn btn-perigo btn-sm" type="submit">Remover item</button></form>`);
+  if (eu.papel === 'admin' && i.status !== 'devolvido')
+    secoes.push(html`<form data-f="apagar" class="painel-acao perigo"><b>Apagar definitivamente</b><p class="dica">Para trotes e conteúdo impróprio: some da lista, fotos e histórico são excluídos e <b>não dá para desfazer</b>. Só o registro na auditoria permanece.</p><div class="campo"><label for="ap">Motivo</label><input id="ap" name="motivo" maxlength="200"></div><button class="btn btn-perigo btn-sm" type="submit">Apagar de vez</button></form>`);
   if (i.entrega) secoes.push(html`<div class="alerta alerta-ok">Entregue a <b>${i.entrega.recebedor_nome}</b> (${i.entrega.recebedor_documento}) em ${dataHora(i.entrega.criado_em)}.</div>`);
   mostrar(box, secoes.length ? html`${secoes}` : html`<p class="dica">Nenhuma ação pendente para este item.</p>`);
 
-  const rotas = { recebido: ['recebido', 'Recebimento confirmado.'], entregar: ['entregar', 'Devolução registrada.'], destinar: ['destinar', 'Destinação registrada.'], remover: ['../admin/itens/:id/remover', 'Item removido.'] };
+  const rotas = { recebido: ['recebido', 'Recebimento confirmado.'], entregar: ['entregar', 'Devolução registrada.'], destinar: ['destinar', 'Destinação registrada.'], remover: ['../admin/itens/:id/remover', 'Item removido.'], apagar: ['../admin/itens/:id/apagar', 'Item apagado definitivamente.'] };
   box.querySelectorAll('form[data-f]').forEach((form) => form.addEventListener('submit', ocupado(form.querySelector('button'), async (e) => {
     e.preventDefault(); erroCampos(form);
     const [rota, ok] = rotas[form.dataset.f];
+    if (form.dataset.f === 'apagar' && !confirm('Apagar DEFINITIVAMENTE este item? Isso não pode ser desfeito.')) return;
     const dados = formDados(form);
     for (const k of Object.keys(dados)) if (dados[k] === '') delete dados[k];
     try {
       await post(rota.startsWith('../') ? `/api/${rota.slice(3).replace(':id', id)}` : `/api/itens/${id}/${rota}`, dados);
-      toast(ok, 'ok'); recarregar();
+      toast(ok, 'ok');
+      if (form.dataset.f === 'apagar') location.hash = '#/itens'; else recarregar();
     } catch (err) { falhar(err, form); }
   })));
   box.querySelectorAll('[data-dec]').forEach((b) => b.addEventListener('click', async () => {
@@ -196,7 +200,7 @@ function camposItem(m, v = {}) {
 
 async function formEditar(box, i, id, recarregar) {
   const m = await meta();
-  mostrar(box, html`<form class="painel-acao" novalidate><h3>Editar publicação</h3>${camposItem(m, i)}
+  mostrar(box, html`<form class="painel-acao" novalidate><h2 class="h3">Editar publicação</h2>${camposItem(m, i)}
     <div class="campo"><label for="descricao">Descrição</label><textarea id="descricao" name="descricao" maxlength="1000">${i.descricao}</textarea></div>
     <button class="btn btn-azul" type="submit">Salvar alterações</button></form>`);
   const form = box.querySelector('form');

@@ -39,9 +39,9 @@ export default async function home({ el }) {
   </div></section>
 
   <div class="faixa-wrap"><div class="faixa"><div class="wrap">
-    <div><strong>${resumo.achados_ativos}</strong><span>achados aguardando dono</span></div>
-    <div><strong>${resumo.perdidos_ativos}</strong><span>itens sendo procurados</span></div>
-    <div><strong>${resumo.devolvidos}</strong><span>itens devolvidos</span></div>
+    <div><strong>${resumo.achados_ativos}</strong><span>${resumo.achados_ativos === 1 ? 'achado aguardando dono' : 'achados aguardando dono'}</span></div>
+    <div><strong>${resumo.perdidos_ativos}</strong><span>${resumo.perdidos_ativos === 1 ? 'item sendo procurado' : 'itens sendo procurados'}</span></div>
+    <div><strong>${resumo.devolvidos}</strong><span>${resumo.devolvidos === 1 ? 'item devolvido' : 'itens devolvidos'}</span></div>
   </div></div></div>
 
   ${recentes ? html`<section class="secao wrap"><h2>Publicados recentemente</h2><p class="sub">Veja se o que você procura já apareceu por aqui.</p>
@@ -50,9 +50,9 @@ export default async function home({ el }) {
 
   <section class="secao wrap"><h2>Como funciona</h2><p class="sub">Três passos simples, sem burocracia.</p>
     <div class="passos">
-      <div class="card passo"><div class="n">1</div><h3>Publique com foto</h3><p>Perdeu ou achou algo? Tire uma foto, diga onde e quando foi e publique em menos de um minuto.</p></div>
-      <div class="card passo"><div class="n">2</div><h3>Deixe no Protocolo</h3><p>Quem achou entrega o item no Protocolo. O sistema mostra há quantos dias ele está lá.</p></div>
-      <div class="card passo"><div class="n">3</div><h3>Retire com segurança</h3><p>O dono clica em “É meu!”, o Protocolo confere e registra a devolução com data e documento.</p></div>
+      <div class="card passo"><div class="n">1</div><h2 class="h3">Publique com foto</h2><p>Perdeu ou achou algo? Tire uma foto, diga onde e quando foi e publique em menos de um minuto.</p></div>
+      <div class="card passo"><div class="n">2</div><h2 class="h3">Deixe no Protocolo</h2><p>Quem achou entrega o item no Protocolo. O sistema mostra há quantos dias ele está lá.</p></div>
+      <div class="card passo"><div class="n">3</div><h2 class="h3">Retire com segurança</h2><p>O dono clica em “É meu!”, o Protocolo confere e registra a devolução com data e documento.</p></div>
     </div></section>
 
   <section class="secao wrap sem-topo"><h2>Navegue por categoria</h2><p class="sub">Encontre mais rápido filtrando pelo tipo de objeto.</p>

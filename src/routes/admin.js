@@ -78,7 +78,13 @@ export default function adminRoutes(r, d) {
       FROM auditoria a LEFT JOIN usuarios u ON u.id=a.usuario_id ORDER BY a.id DESC LIMIT 50 OFFSET ?`).all((pagina - 1) * 50) };
   }, ADMIN);
 
-  const catalogo = (tabela, rota, validarNome) => {
+  r.add('GET', '/api/admin/catalogos', async () => ({
+    categorias: db.prepare('SELECT c.id, c.nome, c.ativo, (SELECT count(*) FROM itens i WHERE i.categoria_id=c.id) usos FROM categorias c ORDER BY c.nome').all(),
+    locais: db.prepare('SELECT l.id, l.nome, l.ativo, (SELECT count(*) FROM itens i WHERE i.local_id=l.id) usos FROM locais l ORDER BY l.nome').all(),
+  }), ADMIN);
+
+  // Catálogos (categorias e locais): criar, renomear, ativar/desativar e remover (só se ninguém usa).
+  const catalogo = (tabela, rota, coluna) => {
     r.add('POST', `/api/admin/${rota}`, async (ctx) => {
       const { nome } = validar(await ctx.json(), { nome: { min: 2, max: 60, label: 'Nome' } });
       try { db.prepare(`INSERT INTO ${tabela} (nome) VALUES (?)`).run(nome); }
@@ -88,13 +94,46 @@ export default function adminRoutes(r, d) {
       return { ok: true };
     }, ADMIN);
     r.add('PATCH', `/api/admin/${rota}/:id`, async (ctx) => {
-      const { ativo } = validar(await ctx.json(), { ativo: { type: 'bool', label: 'Ativo' } });
-      const up = db.prepare(`UPDATE ${tabela} SET ativo=? WHERE id=?`).run(ativo ? 1 : 0, Number(ctx.params.id) || 0);
-      if (!up.changes) throw new HttpError(404, 'Não encontrado.');
-      d.auditar(ctx, `admin.${tabela}_alterado`, ctx.params.id);
+      const b = validar(await ctx.json(), {
+        ativo: { optional: true, type: 'bool', label: 'Ativo' },
+        nome: { optional: true, min: 2, max: 60, label: 'Nome' },
+      });
+      const id = Number(ctx.params.id) || 0;
+      if (!db.prepare(`SELECT 1 FROM ${tabela} WHERE id=?`).get(id)) throw new HttpError(404, 'Não encontrado.');
+      try {
+        if (b.nome !== undefined) db.prepare(`UPDATE ${tabela} SET nome=? WHERE id=?`).run(b.nome, id);
+        if (b.ativo !== undefined) db.prepare(`UPDATE ${tabela} SET ativo=? WHERE id=?`).run(b.ativo ? 1 : 0, id);
+      } catch (e) { if (String(e.message).includes('UNIQUE')) throw new HttpError(409, 'Já existe um com esse nome.'); throw e; }
+      d.auditar(ctx, `admin.${tabela}_alterado`, id, JSON.stringify(b));
+      return { ok: true };
+    }, ADMIN);
+    r.add('DELETE', `/api/admin/${rota}/:id`, async (ctx) => {
+      const id = Number(ctx.params.id) || 0;
+      const atual = db.prepare(`SELECT nome FROM ${tabela} WHERE id=?`).get(id);
+      if (!atual) throw new HttpError(404, 'Não encontrado.');
+      const usos = db.prepare(`SELECT count(*) n FROM itens WHERE ${coluna}=?`).get(id).n;
+      if (usos) throw new HttpError(409, `Há ${usos} item(ns) usando "${atual.nome}". Desative em vez de remover (ou apague/mova esses itens antes).`);
+      db.prepare(`DELETE FROM ${tabela} WHERE id=?`).run(id);
+      d.auditar(ctx, `admin.${tabela}_removido`, id, atual.nome);
       return { ok: true };
     }, ADMIN);
   };
-  catalogo('locais', 'locais');
-  catalogo('categorias', 'categorias');
+  catalogo('locais', 'locais', 'local_id');
+  catalogo('categorias', 'categorias', 'categoria_id');
+
+  // Apagar de vez uma postagem (trote, conteúdo impróprio). Fica só o registro na auditoria.
+  r.add('POST', '/api/admin/itens/:id/apagar', async (ctx) => {
+    const { motivo } = validar(await ctx.json(), { motivo: { min: 5, max: 200, label: 'Motivo' } });
+    const item = d.carregar(Number(ctx.params.id) || 0);
+    if (item.status === 'devolvido') throw new HttpError(409, 'Itens devolvidos são registro oficial do Protocolo e não podem ser apagados.');
+    const fotos = db.prepare('SELECT arquivo FROM item_fotos WHERE item_id=?').all(item.id);
+    transacao(db, () => {
+      db.exec('PRAGMA defer_foreign_keys = ON'); // apaga o item primeiro; as tabelas filhas em seguida (a verificação ocorre no COMMIT)
+      db.prepare('DELETE FROM itens WHERE id=?').run(item.id); // item_fotos some junto (CASCADE)
+      for (const t of ['entregas', 'item_historico', 'reivindicacoes', 'avisos', 'denuncias']) db.prepare(`DELETE FROM ${t} WHERE item_id=?`).run(item.id);
+    });
+    for (const f of fotos) await d.apagarArquivo(f.arquivo);
+    d.auditar(ctx, 'admin.item_apagado', `item:${item.id}`, `${item.codigo} "${item.titulo}": ${motivo}`);
+    return { ok: true };
+  }, ADMIN);
 }

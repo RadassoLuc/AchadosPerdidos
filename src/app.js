@@ -8,16 +8,19 @@ import { HttpError } from './lib/validate.js';
 import { sha256 } from './lib/crypto.js';
 import { nowIso } from './lib/dates.js';
 import {
-  cabecalhosSeguranca, criarLimitador, criarRoteador, enviarJson, ipDe, lerCookies, lerJson,
+  cabecalhosSeguranca, criarLimitador, montarCsp, criarRoteador, enviarJson, ipDe, lerCookies, lerJson,
 } from './lib/http.js';
 import authRoutes, { nomeCookie } from './routes/auth.js';
 import itemRoutes from './routes/items.js';
 import uploadRoutes from './routes/uploads.js';
 import protocoloRoutes from './routes/protocolo.js';
 import adminRoutes from './routes/admin.js';
+import googleRoutes from './routes/google.js';
+import perfilRoutes from './routes/perfil.js';
 
 const HANDLED = Symbol('handled');
 const SEM_CSRF = new Set(['/api/auth/entrar', '/api/auth/cadastro', '/api/auth/verificar', '/api/auth/esqueci', '/api/auth/redefinir']);
+const SO_SENHA = new Set(['/api/auth/cadastro', '/api/auth/entrar', '/api/auth/verificar', '/api/auth/esqueci', '/api/auth/redefinir']);
 const TIPOS = {
   '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
   '.svg': 'image/svg+xml', '.webp': 'image/webp', '.png': 'image/png', '.ico': 'image/x-icon', '.json': 'application/json',
@@ -30,17 +33,22 @@ export function criarApp(overrides = {}, log = console) {
   const mailer = criarMailer(config, log);
   const limitador = criarLimitador(config.rateLimit);
   const r = criarRoteador();
+  const csp = montarCsp(config);
 
   const d = { db, config, mailer, limitador };
   d.auditar = (ctx, acao, alvo = '', detalhe = '', usuarioId) => {
     db.prepare('INSERT INTO auditoria (usuario_id, acao, alvo, detalhe, ip) VALUES (?,?,?,?,?)')
       .run(usuarioId ?? ctx.usuario?.id ?? null, acao, String(alvo).slice(0, 80), String(detalhe).slice(0, 300), ctx.ip);
   };
+  d.apagarArquivo = (arquivo) => unlink(path.join(config.uploadDir, arquivo)).catch(() => {});
   authRoutes(r, d);
   itemRoutes(r, d); // define d.mudarStatus / d.carregar usados pelas demais
   uploadRoutes(r, d);
+  perfilRoutes(r, d);
   protocoloRoutes(r, d);
   adminRoutes(r, d);
+  if (config.google) googleRoutes(r, d);
+  r.add('GET', '/api/saude', async () => { db.prepare('SELECT 1').get(); return { ok: true }; });
 
   function carregarSessao(req) {
     const token = lerCookies(req)[nomeCookie(config)];
@@ -75,7 +83,7 @@ export function criarApp(overrides = {}, log = console) {
   }
 
   async function tratar(req, res) {
-    cabecalhosSeguranca(res, config.production);
+    cabecalhosSeguranca(res, config.production, csp);
     const url = new URL(req.url, 'http://local');
     const caminho = url.pathname;
     const ip = ipDe(req, config.trustProxy);
@@ -86,6 +94,7 @@ export function criarApp(overrides = {}, log = console) {
       if (!achada.handler) {
         throw new HttpError(achada.naoPermitido ? 405 : 404, achada.naoPermitido ? 'Método não permitido.' : 'Não encontrado.');
       }
+      if (!config.senhaAtiva && SO_SENHA.has(caminho)) throw new HttpError(404, 'Login por senha desativado. Use o Google.');
       const ctx = { req, res, ip, params: achada.params, query: url.searchParams, status: 200, handled: HANDLED, usuario: null, sessao: null };
       ctx.json = () => lerJson(req);
       const sess = carregarSessao(req);

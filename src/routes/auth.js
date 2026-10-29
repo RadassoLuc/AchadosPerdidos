@@ -6,7 +6,8 @@ import { nowIso } from '../lib/dates.js';
 const MIN = 60_000, HORA = 3_600_000;
 export const nomeCookie = (config) => (config.production ? '__Host-ap_sid' : 'ap_sid');
 
-export const usuarioPublico = (u) => ({ id: u.id, nome: u.nome, email: u.email, matricula: u.matricula, papel: u.papel });
+export const avatarUrl = (a) => (a ? `/uploads/${a}` : null);
+export const usuarioPublico = (u) => ({ id: u.id, nome: u.nome, email: u.email, matricula: u.matricula, papel: u.papel, avatar: avatarUrl(u.avatar), tem_senha: !String(u.senha_hash).startsWith('google$') });
 
 export default function authRoutes(r, d) {
   const { db, config, mailer, limitador } = d;
@@ -33,6 +34,9 @@ export default function authRoutes(r, d) {
   const promoverAdmin = (u) => {
     if (config.adminEmails.includes(u.email) && u.papel !== 'admin') db.prepare("UPDATE usuarios SET papel='admin' WHERE id=?").run(u.id);
   };
+
+  d.criarSessao = criarSessao;
+  d.promoverAdmin = promoverAdmin;
 
   r.add('POST', '/api/auth/cadastro', async (ctx) => {
     limitador.usar(`cad:${ctx.ip}`, 5, HORA);
@@ -151,6 +155,7 @@ export default function authRoutes(r, d) {
 
   r.add('POST', '/api/auth/senha', async (ctx) => {
     limitador.usar(`senha:${ctx.usuario.id}`, 10, 15 * MIN);
+    if (String(ctx.usuario.senha_hash).startsWith('google$')) throw new HttpError(409, 'Sua conta usa o login do Google; não há senha para alterar.');
     const b = validar(await ctx.json(), {
       atual: { min: 1, max: 200, raw: true, label: 'Senha atual' },
       nova: { min: 1, max: 200, raw: true, label: 'Nova senha' },
@@ -168,12 +173,18 @@ export default function authRoutes(r, d) {
   // LGPD: exclusão da conta (anonimiza; itens e histórico permanecem sem dados pessoais).
   r.add('POST', '/api/auth/excluir-conta', async (ctx) => {
     limitador.usar(`exc:${ctx.usuario.id}`, 5, HORA);
-    const { senha } = validar(await ctx.json(), { senha: { min: 1, max: 200, raw: true, label: 'Senha' } });
     const u = db.prepare('SELECT * FROM usuarios WHERE id=?').get(ctx.usuario.id);
-    if (!(await verificarSenha(senha, u.senha_hash))) throw new HttpError(422, 'Confira os campos destacados.', { campos: { senha: 'Senha incorreta.' } });
+    if (u.senha_hash.startsWith('google$')) {
+      const { confirmacao } = validar(await ctx.json(), { confirmacao: { min: 1, max: 20, label: 'Confirmação' } });
+      if (confirmacao !== 'EXCLUIR') throw new HttpError(422, 'Confira os campos destacados.', { campos: { confirmacao: 'Digite EXCLUIR para confirmar.' } });
+    } else {
+      const { senha } = validar(await ctx.json(), { senha: { min: 1, max: 200, raw: true, label: 'Senha' } });
+      if (!(await verificarSenha(senha, u.senha_hash))) throw new HttpError(422, 'Confira os campos destacados.', { campos: { senha: 'Senha incorreta.' } });
+    }
     if (u.papel === 'admin' && db.prepare("SELECT count(*) n FROM usuarios WHERE papel='admin' AND bloqueado=0").get().n <= 1)
       throw new HttpError(409, 'Você é o único administrador. Promova outra pessoa antes de excluir a conta.');
-    db.prepare("UPDATE usuarios SET nome='Usuário removido', email=?, matricula=NULL, senha_hash=?, bloqueado=1, papel='aluno' WHERE id=?")
+    if (u.avatar) await d.apagarArquivo(u.avatar);
+    db.prepare("UPDATE usuarios SET nome='Usuário removido', avatar=NULL, email=?, matricula=NULL, senha_hash=?, bloqueado=1, papel='aluno' WHERE id=?")
       .run(`removido-${u.id}@excluido.invalid`, 'scrypt$0$0$0$x$x', u.id);
     db.prepare('UPDATE reivindicacoes SET status=\'cancelada\' WHERE usuario_id=? AND status=\'pendente\'').run(u.id);
     db.prepare('DELETE FROM sessoes WHERE usuario_id=?').run(u.id);

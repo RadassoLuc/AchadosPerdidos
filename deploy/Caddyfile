@@ -1,0 +1,5 @@
+# Substitua pelo seu domínio. O Caddy obtém e renova o HTTPS (Let's Encrypt) sozinho.
+achados-uepa.duckdns.org {
+	encode gzip
+	reverse_proxy 127.0.0.1:3000
+}
