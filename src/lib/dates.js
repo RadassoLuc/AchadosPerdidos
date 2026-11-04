@@ -11,6 +11,9 @@ export const nowIso = () => new Date().toISOString();
 
 const belemDay = (d) => Date.parse(`${dayFmt.format(d)}T00:00:00Z`);
 
+/** Início (00:00 em Belém) do dia de `d`, como Date. Usado nos limites "por dia". */
+export const inicioDoDiaBelem = (d = new Date()) => new Date(`${dayFmt.format(d)}T00:00:00-03:00`);
+
 /** Dias de calendário (Belém) entre `fromIso` e `to` (padrão: agora). Nunca negativo. */
 export function diasEntre(fromIso, to = new Date()) {
   const diff = Math.round((belemDay(to) - belemDay(new Date(fromIso))) / 86400000);
