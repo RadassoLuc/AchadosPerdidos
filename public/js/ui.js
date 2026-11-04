@@ -58,6 +58,27 @@ export function toast(msg, tipo = '') {
   setTimeout(() => el.remove(), 5000);
 }
 
+/** Janela de confirmação acessível (usa <dialog>). Devolve true se o usuário confirmar. */
+export function confirmar({ titulo, mensagem, sim = 'Sim', nao = 'Cancelar' }) {
+  return new Promise((resolve) => {
+    const antes = document.activeElement;
+    const d = document.createElement('dialog');
+    d.className = 'confirma';
+    d.setAttribute('aria-labelledby', 'confirma-titulo');
+    d.setAttribute('aria-describedby', 'confirma-msg');
+    d.innerHTML = `<h2 id="confirma-titulo">${esc(titulo)}</h2><p id="confirma-msg">${esc(mensagem)}</p>
+      <div class="confirma-acoes">
+        <button type="button" class="btn btn-borda" data-r="nao">${esc(nao)}</button>
+        <button type="button" class="btn btn-azul" data-r="sim">${esc(sim)}</button>
+      </div>`;
+    d.addEventListener('click', (e) => { const b = e.target.closest('[data-r]'); if (b) d.close(b.dataset.r); });
+    d.addEventListener('close', () => { const ok = d.returnValue === 'sim'; d.remove(); antes?.focus?.(); resolve(ok); });
+    document.body.append(d);
+    d.showModal();
+    d.querySelector('[data-r="nao"]').focus();
+  });
+}
+
 export const dataHora = (iso) => new Date(iso).toLocaleString('pt-BR', { timeZone: 'America/Belem', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 export const dataCurta = (iso) => new Date(iso).toLocaleDateString('pt-BR', { timeZone: 'America/Belem', day: '2-digit', month: 'short' });
 

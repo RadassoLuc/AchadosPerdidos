@@ -352,3 +352,14 @@ html[data-contraste="alto"] .avatar { background: #000; color: #ffe14d; border: 
 
 h2.h3 { font-size: 1.17rem; }
 .item h2.h3 { font-size: 1.05rem; }
+
+dialog.confirma { border: 1px solid var(--borda); border-radius: var(--raio); background: var(--card); color: var(--texto); box-shadow: var(--sombra); padding: 1.5rem; width: min(92vw, 26rem); }
+dialog.confirma::backdrop { background: rgba(18, 22, 63, .6); }
+dialog.confirma h2 { margin: 0 0 .5rem; font-size: 1.25rem; }
+dialog.confirma p { margin: 0 0 1.25rem; color: var(--suave); }
+.confirma-acoes { display: flex; gap: .75rem; justify-content: flex-end; flex-wrap: wrap; }
+
+/* Botão "Postar item" do menu sempre amarelo (vence a regra .nav a) */
+.nav a.btn-ouro { background: var(--ouro); color: #1a1a1a; }
+.nav a.btn-ouro:hover { background: var(--ouro-600); color: #1a1a1a; }
+html[data-contraste="alto"] .nav a.btn-ouro { background: #ffe14d; color: #000; }
