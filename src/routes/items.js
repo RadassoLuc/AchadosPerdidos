@@ -1,4 +1,4 @@
-import { diasEntre, faixaDias, nowIso, parseOcorrido } from '../lib/dates.js';
+import { diasEntre, faixaDias, inicioDoDiaBelem, nowIso, parseOcorrido } from '../lib/dates.js';
 import { HttpError, normalizarBusca, validar } from '../lib/validate.js';
 import { transacao } from '../db.js';
 
@@ -179,8 +179,12 @@ export default function itemRoutes(r, d) {
     if (b.tipo === 'perdido' && (b.descricao || '').length < 10) throw new HttpError(422, 'Confira os campos destacados.', { campos: { descricao: 'Descreva o item (mínimo de 10 caracteres) para ajudar a identificá-lo.' } });
     b.ocorrido_em = validarOcorrido(b.ocorrido_em);
     validarRefs(b);
-    const recentes = db.prepare("SELECT count(*) n FROM itens WHERE autor_id=? AND criado_em > ?").get(ctx.usuario.id, new Date(Date.now() - DIA).toISOString()).n;
-    if (recentes >= 10) throw new HttpError(429, 'Limite de 10 publicações por dia atingido.');
+// Antispam: no máximo `maxItensPorDia` publicações por dia (zera à meia-noite de Belém).
+// Protocolo e admin não têm limite. Itens cancelados também contam.
+    if (ctx.usuario.papel === 'aluno') {
+      const hoje = db.prepare('SELECT count(*) n FROM itens WHERE autor_id=? AND criado_em >= ?').get(ctx.usuario.id, inicioDoDiaBelem().toISOString()).n;
+      if (hoje >= config.maxItensPorDia) throw new HttpError(429, `Você atingiu o limite de ${config.maxItensPorDia} publicações por dia. Tente novamente amanhã.`);
+    }
     const status = b.tipo === 'achado' ? 'aguardando_entrega' : 'aberto';
 
     const id = transacao(db, () => {
