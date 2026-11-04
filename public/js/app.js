@@ -1,7 +1,8 @@
 import { carregarSessao, meta, sessao, post } from './api.js';
 import { alternarPainel, aplicar } from './a11y.js';
 import { carregarVLibras } from './vlibras.js';
-import { avatar, html, icone, mostrar, raw, toast } from './ui.js';
+import { avatar, confirmar, html, icone, mostrar, raw, toast } from './ui.js';
+
 
 const rotas = [
   { re: /^\/$/, mod: () => import('./pages/home.js') },
@@ -53,7 +54,11 @@ function desenharTopo() {
     try { localStorage.setItem('tema', novo); } catch { /* ok */ }
   };
   const sair = document.getElementById('sair');
-  if (sair) sair.onclick = async () => { try { await post('/api/auth/sair'); } catch { /* ok */ } sessao.usuario = null; sessao.csrf = ''; toast('Você saiu da conta.'); location.hash = '#/'; desenharTopo(); };
+  if (sair) sair.onclick = async () => {
+    const ok = await confirmar({ titulo: 'Sair da conta?', mensagem: 'Você precisará entrar novamente para publicar ou reivindicar itens.', sim: 'Sim, sair', nao: 'Cancelar' });
+    if (!ok) return;
+    try { await post('/api/auth/sair'); } catch { /* ok */ } sessao.usuario = null; sessao.csrf = ''; toast('Você saiu da conta.'); location.hash = '#/'; desenharTopo();
+  };
 }
 
 function desenharRodape() {
